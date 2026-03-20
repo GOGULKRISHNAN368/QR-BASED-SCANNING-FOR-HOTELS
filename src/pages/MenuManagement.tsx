@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, ImageIcon, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -9,14 +9,11 @@ import { DishForm } from '@/components/DishForm';
 import { getEffectivePrice } from '@/types/menu';
 import type { Dish, TimeSlot } from '@/types/menu';
 import { toast } from 'sonner';
-import { useGenerateDishImage } from '@/hooks/useGenerateDishImage';
 
 export default function MenuManagement() {
   const { dishes, addDish, updateDish, removeDish } = useStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<Dish | undefined>();
-  const { generateImage, generating } = useGenerateDishImage();
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const handleAdd = async (data: Omit<Dish, 'id' | 'createdAt'>) => {
     const newDish: Dish = {
@@ -25,14 +22,7 @@ export default function MenuManagement() {
       createdAt: new Date().toISOString(),
     };
     addDish(newDish);
-    toast.success(`${newDish.name} added! Generating image...`);
-
-    // Auto-generate image
-    const imageUrl = await generateImage(newDish.name);
-    if (imageUrl) {
-      updateDish(newDish.id, { imageUrl });
-      toast.success(`Image generated for ${newDish.name}!`);
-    }
+    toast.success(`${newDish.name} added!`);
   };
 
   const handleEdit = (data: Omit<Dish, 'id' | 'createdAt'>) => {
@@ -45,17 +35,6 @@ export default function MenuManagement() {
   const handleDelete = (dish: Dish) => {
     removeDish(dish.id);
     toast.success(`${dish.name} removed from menu.`);
-  };
-
-  const handleRegenerate = async (dish: Dish) => {
-    setGeneratingId(dish.id);
-    toast.info(`Regenerating image for ${dish.name}...`);
-    const imageUrl = await generateImage(dish.name);
-    if (imageUrl) {
-      updateDish(dish.id, { imageUrl });
-      toast.success(`New image generated for ${dish.name}!`);
-    }
-    setGeneratingId(null);
   };
 
   const slotLabel = (s: TimeSlot) =>
@@ -76,7 +55,6 @@ export default function MenuManagement() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>
           {dishes.map((dish) => {
-            const isRegenerating = generatingId === dish.id;
             return (
               <motion.div
                 key={dish.id}
@@ -90,25 +68,9 @@ export default function MenuManagement() {
                 <div className="h-36 bg-muted flex items-center justify-center relative">
                   {dish.imageUrl ? (
                     <img src={dish.imageUrl} alt={dish.name} className="h-full w-full object-cover" />
-                  ) : generating ? (
-                    <Loader2 className="h-8 w-8 text-muted-foreground/40 animate-spin" />
                   ) : (
                     <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
                   )}
-                  {/* Regenerate button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 bg-card/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleRegenerate(dish)}
-                    disabled={isRegenerating}
-                  >
-                    {isRegenerating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
                 </div>
 
                 {dish.offer && (

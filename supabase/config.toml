@@ -1,4 +1,0 @@
-project_id = "hvlbddrhacbxmzxnfwkt"
-
-[functions.generate-dish-image]
-verify_jwt = false

@@ -30,9 +30,21 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
   const [offer, setOffer] = useState(initial?.offer ?? '');
   const [offerPercent, setOfferPercent] = useState(initial?.offerPercent?.toString() ?? '');
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(initial?.timeSlots ?? []);
+  const [customImage, setCustomImage] = useState<string | undefined>(initial?.imageUrl);
 
   const toggleSlot = (slot: TimeSlot) => {
     setTimeSlots((prev) => prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +58,7 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
       offer: offer || undefined,
       offerPercent: offerPercent ? parseFloat(offerPercent) : undefined,
       timeSlots,
-      imageUrl: initial?.imageUrl,
+      imageUrl: customImage,
     });
     onClose();
   };
@@ -58,6 +70,14 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
           <DialogTitle className="font-display">{initial ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Dish Image (Optional)</Label>
+            <div className="mt-1 flex items-center gap-3">
+              {customImage && <img src={customImage} alt="Preview" className="h-10 w-10 object-cover rounded shadow" />}
+              <Input type="file" accept="image/*" onChange={handleImageUpload} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Leave blank for no image.</p>
+          </div>
           <div>
             <Label>Dish Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Butter Chicken" required />
