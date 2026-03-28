@@ -22,12 +22,60 @@ interface AppState {
   fetchData: () => Promise<void>;
 }
 
+// @ts-ignore
+import { io } from 'https://cdn.socket.io/4.7.2/socket.io.esm.min.js';
+
+const socket = io('http://localhost:5000'); // Central data relay station
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => {
       const hostname = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
       const API_BASE = `http://${hostname}:5000/api`;
       
+      // Real-time stream processing
+      socket.on('menuUpdated', (update: any) => {
+        console.log('📡 [MenuMagic Dashboard] Menu updated via WebSocket:', update);
+        set((s) => {
+          if (update.action === 'create') {
+            const data = { ...update.data, id: update.data.id || update.data._id };
+            if (s.dishes.some(d => d.id === data.id)) return s;
+            return { dishes: [...s.dishes, data] };
+          } else if (update.action === 'update') {
+            const data = { ...update.data, id: update.data.id || update.data._id };
+            return { dishes: s.dishes.map(d => d.id === data.id ? data : d) };
+          } else if (update.action === 'delete') {
+            return { dishes: s.dishes.filter(d => d.id !== update.id) };
+          }
+          return s;
+        });
+      });
+
+      socket.on('orderCreated', (newOrder: any) => {
+        console.log('📡 [MenuMagic Dashboard] New order detected:', newOrder);
+        set((s) => {
+          const data = { ...newOrder, id: newOrder.id || newOrder._id };
+          if (s.orders.some(o => o.id === data.id)) return s;
+          return { orders: [data, ...s.orders] };
+        });
+      });
+
+      socket.on('orderUpdated', (updatedOrder: any) => {
+        console.log('📡 [MenuMagic Dashboard] Order relay updated:', updatedOrder);
+        set((s) => {
+          const data = { ...updatedOrder, id: updatedOrder.id || updatedOrder._id };
+          return { orders: s.orders.map(o => o.id === data.id ? data : o) };
+        });
+      });
+
+      socket.on('orderCompleted', (completedOrder: any) => {
+        console.log('📡 [MenuMagic Dashboard] Order completed:', completedOrder);
+        set((s) => {
+          const data = { ...completedOrder, id: completedOrder.id || completedOrder._id };
+          return { orders: s.orders.map(o => o.id === data.id ? data : o) };
+        });
+      });
+
       return {
         dishes: [],
         orders: [],
@@ -141,6 +189,20 @@ export const useStore = create<AppState>()(
         },
         updateOrderStatus: async (id, status) => {
           try {
+            // Check if it's completed using our new centralized PUT /complete path
+            if (status === 'completed') {
+               const res = await fetch(`${API_BASE}/orders/complete/${id}`, {
+                  method: 'PUT'
+               });
+               if (res.ok) {
+                 const updated = await res.json();
+                 set((s) => ({
+                   orders: s.orders.map((o) => (o.id === id || (o as any)._id === id ? updated : o)),
+                 }));
+               }
+               return;
+            }
+
             const res = await fetch(`${API_BASE}/orders/${id}/status`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -196,8 +258,12 @@ export const useStore = create<AppState>()(
         getTodayRevenue: () => {
           const today = new Date().toDateString();
           return get()
-            .orders.filter((o) => new Date(o.createdAt).toDateString() === today && o.status !== 'pending')
-            .reduce((sum, o) => sum + o.totalPrice, 0);
+            .orders.filter((o) => new Date(o.createdAt).toDateString() === today && o.status !== 'pending' && o.status !== 'waiting')
+            .reduce((sum, o) => {
+              // totalPrice or totalAmount
+              const amt = (o as any).totalPrice || (o as any).totalAmount || 0;
+              return sum + amt;
+            }, 0);
         },
         getTotalExpenses: () => {
           return get().expenses.reduce((sum, e) => sum + e.amount, 0);

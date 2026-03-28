@@ -57,7 +57,7 @@ app.post('/api/dishes', async (req, res) => {
       timeSlots: Array.isArray(timeSlots) ? timeSlots : [],
       imageUrl,
       offer,
-      offerPercent: Number(offerPercent)
+      offerPercent: offerPercent ? Number(offerPercent) : undefined
     });
 
     console.log('>>> [DISH_POST] Attempting to save to MongoDB Atlas...');
@@ -128,7 +128,7 @@ app.post('/api/orders', async (req, res) => {
   try {
     const count = await Order.countDocuments();
     const orderId = `ORD-${String(count + 1).padStart(3, '0')}`;
-    const newOrder = new Order({ ...req.body, orderId });
+    const newOrder = new Order({ ...req.body, status: 'waiting', orderId });
     const savedOrder = await newOrder.save();
     res.status(201).json({ ...savedOrder.toObject(), id: savedOrder.orderId });
   } catch (error) {

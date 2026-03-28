@@ -5,9 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore } from '@/store/useStore';
 import type { OrderStatus } from '@/types/menu';
 
-const STATUS_OPTIONS: OrderStatus[] = ['pending', 'preparing', 'served', 'completed'];
+const STATUS_OPTIONS: OrderStatus[] = ['waiting', 'pending', 'preparing', 'served', 'completed'];
 
 const statusStyle: Record<OrderStatus, string> = {
+  waiting: 'bg-muted/10 text-muted-foreground border-muted/20',
   pending: 'bg-destructive/10 text-destructive border-destructive/20',
   preparing: 'bg-warning/10 text-warning border-warning/20',
   served: 'bg-info/10 text-info border-info/20',

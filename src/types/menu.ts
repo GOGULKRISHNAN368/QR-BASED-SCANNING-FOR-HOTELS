@@ -1,6 +1,6 @@
 export type TimeSlot = 'morning' | 'evening' | 'night';
 
-export type OrderStatus = 'pending' | 'preparing' | 'served' | 'completed';
+export type OrderStatus = 'waiting' | 'pending' | 'preparing' | 'served' | 'completed';
 
 export interface Dish {
   id: string;

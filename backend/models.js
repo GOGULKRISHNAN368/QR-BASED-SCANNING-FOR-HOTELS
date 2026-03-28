@@ -34,7 +34,7 @@ const orderSchema = new mongoose.Schema({
   tableNumber: { type: Number, required: true },
   items: [orderItemSchema],
   totalPrice: { type: Number, required: true },
-  status: { type: String, required: true, enum: ['pending', 'preparing', 'served', 'completed'], default: 'pending' },
+  status: { type: String, required: true, enum: ['waiting', 'pending', 'preparing', 'served', 'completed'], default: 'waiting' },
   createdAt: { type: Date, default: Date.now },
 });
 
