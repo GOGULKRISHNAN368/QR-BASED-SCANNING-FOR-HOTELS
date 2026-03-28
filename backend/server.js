@@ -39,30 +39,30 @@ app.get('/api/dishes', async (req, res) => {
 
 app.post('/api/dishes', async (req, res) => {
   try {
-    console.log('--- REQ BODY RECEIVED ---');
-    console.log(req.body);
-    console.log('-------------------------');
-
+    console.log('>>> [DISH_POST] Received:', req.body.name);
+    
     const { name, description, category, price, available, timeSlots, imageUrl, offer, offerPercent } = req.body;
 
     const dish = new Dish({
       name,
       description,
       category,
-      price: Number(price),
-      available,
-      timeSlots,
+      price: Number(price) || 0,
+      available: available ?? true,
+      timeSlots: Array.isArray(timeSlots) ? timeSlots : [],
       imageUrl,
       offer,
-      offerPercent
+      offerPercent: Number(offerPercent)
     });
 
+    console.log('>>> [DISH_POST] Attempting to save to MongoDB Atlas...');
     const savedDish = await dish.save();
-    console.log('✅ Dish saved to Atlas:', savedDish.name);
+    console.log('>>> [DISH_POST] SUCCESS! Saved dish ID:', savedDish._id);
 
-    res.status(201).json({ ...savedDish.toObject(), id: savedDish._id.toString() });
+    const responseData = { ...savedDish.toObject(), id: savedDish._id.toString() };
+    res.status(201).json(responseData);
   } catch (error) {
-    console.error('❌ Error adding dish:', error.message);
+    console.error('>>> [DISH_POST] FAILED:', error.message);
     res.status(500).json({ message: error.message });
   }
 });

@@ -15,7 +15,7 @@ const MOCK_INVENTORY = [
 
 export default function Dashboard() {
   const { dishes, staff } = useStore();
-  const activeDishes = dishes.filter((d) => d.available).length;
+  const activeDishes = dishes.filter((d) => d.available !== false).length;
 
   return (
     <div className="space-y-8">

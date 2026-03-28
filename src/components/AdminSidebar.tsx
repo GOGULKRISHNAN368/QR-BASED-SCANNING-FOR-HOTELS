@@ -1,6 +1,9 @@
-import { LayoutDashboard, UtensilsCrossed, Users, Banknote } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Users, Banknote, RefreshCw } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { useStore } from '@/store/useStore';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
 
@@ -23,7 +27,14 @@ const navItems = [
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
+  const { fetchData } = useStore();
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await fetchData();
+    setTimeout(() => setSyncing(false), 800);
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -37,7 +48,6 @@ export function AdminSidebar() {
           {collapsed && <span className="text-2xl block text-center">🍽</span>}
         </div>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -59,6 +69,18 @@ export function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-4 border-t border-sidebar-accent/20">
+        <Button 
+          variant="ghost" 
+          size={collapsed ? "icon" : "sm"} 
+          className="w-full flex items-center justify-center gap-2 hover:bg-sidebar-accent"
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin text-primary' : ''}`} />
+          {!collapsed && <span>{syncing ? 'Syncing...' : 'Sync with Atlas'}</span>}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }

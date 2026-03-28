@@ -202,26 +202,43 @@ export const useStore = create<AppState>()(
           return get().expenses.reduce((sum, e) => sum + e.amount, 0);
         },
         fetchData: async () => {
-          try {
-            const [dishesRes, ordersRes, staffRes] = await Promise.all([
-              fetch(`${API_BASE}/dishes`),
-              fetch(`${API_BASE}/orders`),
-              fetch(`${API_BASE}/staff`),
-            ]);
-            if (dishesRes.ok && ordersRes.ok && staffRes.ok) {
-              let dishes = await dishesRes.json();
-              let orders = await ordersRes.json();
-              let staff = await staffRes.json();
-              
-              // Map ensuring all have .id
-              dishes = dishes.map((d: any) => ({ ...d, id: d.id || d._id }));
-              orders = orders.map((o: any) => ({ ...o, id: o.id || o._id }));
-              staff = staff.map((s: any) => ({ ...s, id: s.id || s._id }));
-              
-              set({ dishes, orders, staff });
+          const fetchOne = async (path: string) => {
+            try {
+              const res = await fetch(`${API_BASE}${path}`);
+              if (res.ok) return await res.json();
+              console.error(`Fetch failed for ${path}:`, res.status);
+              return null;
+            } catch (e) {
+              console.error(`Error fetching ${path}:`, e);
+              return null;
             }
-          } catch (error) {
-            console.error('Failed to fetch initial data:', error);
+          };
+
+          const [dishesData, ordersData, staffData] = await Promise.all([
+            fetchOne('/dishes'),
+            fetchOne('/orders'),
+            fetchOne('/staff'),
+          ]);
+
+          const updates: AppState = { ...get() };
+          let changed = false;
+          
+          if (dishesData) {
+            updates.dishes = dishesData.map((d: any) => ({ ...d, id: d.id || d._id }));
+            changed = true;
+          }
+          if (ordersData) {
+            updates.orders = ordersData.map((o: any) => ({ ...o, id: o.id || o._id }));
+            changed = true;
+          }
+          if (staffData) {
+            updates.staff = staffData.map((s: any) => ({ ...s, id: s.id || s._id }));
+            changed = true;
+          }
+
+          if (changed) {
+            set(updates);
+            console.log(">>> [fetchData] Store updated successfully.");
           }
         },
       };
