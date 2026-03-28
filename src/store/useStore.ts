@@ -25,7 +25,8 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => {
-      const API_BASE = `http://${window.location.hostname}:5000/api`;
+      const hostname = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
+      const API_BASE = `http://${hostname}:5000/api`;
       
       return {
         dishes: [],
