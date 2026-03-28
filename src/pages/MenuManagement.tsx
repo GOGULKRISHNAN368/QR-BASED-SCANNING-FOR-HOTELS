@@ -82,6 +82,11 @@ export default function MenuManagement() {
                     <div>
                       <h3 className="font-display font-semibold text-card-foreground">{dish.name}</h3>
                       <p className="text-xs text-muted-foreground">{dish.category}</p>
+                      {dish.description && (
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2 italic">
+                          {dish.description}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       {dish.offerPercent ? (

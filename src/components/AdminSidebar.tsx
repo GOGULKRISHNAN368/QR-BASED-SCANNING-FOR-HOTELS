@@ -1,4 +1,4 @@
-import { LayoutDashboard, UtensilsCrossed, ClipboardList, Eye } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Users, Banknote } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -16,8 +16,8 @@ import {
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Menu Management', url: '/menu', icon: UtensilsCrossed },
-  { title: 'Orders', url: '/orders', icon: ClipboardList },
-  { title: 'Menu View', url: '/menu-preview', icon: Eye },
+  { title: 'Team Dashboard', url: '/members', icon: Users },
+  { title: 'Expenses', url: '/expenses', icon: Banknote },
 ];
 
 export function AdminSidebar() {

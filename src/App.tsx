@@ -7,8 +7,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import Dashboard from "@/pages/Dashboard";
 import MenuManagement from "@/pages/MenuManagement";
-import OrderManagement from "@/pages/OrderManagement";
-import MenuPreview from "@/pages/MenuPreview";
+import StaffManagement from "@/pages/StaffManagement";
+import ExpenseManagement from "@/pages/ExpenseManagement";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,8 +30,8 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/menu" element={<MenuManagement />} />
-                  <Route path="/orders" element={<OrderManagement />} />
-                  <Route path="/menu-preview" element={<MenuPreview />} />
+                  <Route path="/members" element={<StaffManagement />} />
+                  <Route path="/expenses" element={<ExpenseManagement />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

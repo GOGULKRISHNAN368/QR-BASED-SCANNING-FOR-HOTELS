@@ -5,6 +5,7 @@ export type OrderStatus = 'pending' | 'preparing' | 'served' | 'completed';
 export interface Dish {
   id: string;
   name: string;
+  description?: string;
   category: string;
   price: number;
   available: boolean;
@@ -29,6 +30,22 @@ export interface Order {
   totalPrice: number;
   status: OrderStatus;
   createdAt: string;
+}
+
+export interface Staff {
+  id: string;
+  name: string;
+  role: string;
+  imageUrl?: string;
+  joinedAt: string;
+}
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: 'Supplies' | 'Utilities' | 'Maintenance' | 'Other';
+  date: string;
 }
 
 export const CATEGORIES = [

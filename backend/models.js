@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const dishSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  description: { type: String },
   category: { type: String, required: true },
   price: { type: Number, required: true },
   available: { type: Boolean, default: true },
@@ -45,5 +46,21 @@ orderSchema.set('toObject', {
   }
 });
 
+const staffSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  role: { type: String, required: true },
+  imageUrl: { type: String },
+  joinedAt: { type: Date, default: Date.now }
+});
+
+staffSchema.set('toObject', {
+  transform: function(doc, ret) {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    delete ret.__v;
+  }
+});
+
 export const Dish = mongoose.model('Dish', dishSchema);
 export const Order = mongoose.model('Order', orderSchema);
+export const Staff = mongoose.model('Staff', staffSchema);
