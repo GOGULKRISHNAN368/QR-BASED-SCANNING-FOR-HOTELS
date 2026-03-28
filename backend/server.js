@@ -70,19 +70,41 @@ app.post('/api/dishes', async (req, res) => {
 app.put('/api/dishes/:id', async (req, res) => {
   try {
     const { id, _id, ...updates } = req.body;
-    const updatedDish = await Dish.findByIdAndUpdate(req.params.id, updates, { new: true });
+    // Attempt to find by _id or a potential custom id field if you ever add one
+    const updatedDish = await Dish.findOneAndUpdate(
+      { $or: [
+        { _id: mongoose.isValidObjectId(req.params.id) ? req.params.id : null },
+        { id: req.params.id }
+      ].filter(q => q._id !== null || q.id !== undefined) },
+      updates,
+      { new: true }
+    );
+    
     if (!updatedDish) return res.status(404).json({ error: 'Dish not found' });
     res.json({ ...updatedDish.toObject(), id: updatedDish._id.toString() });
   } catch (error) {
+    console.error('Update error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
 app.delete('/api/dishes/:id', async (req, res) => {
   try {
-    await Dish.findByIdAndDelete(req.params.id);
+    const deleted = await Dish.findOneAndDelete({
+      $or: [
+        { _id: mongoose.isValidObjectId(req.params.id) ? req.params.id : null },
+        { id: req.params.id }
+      ].filter(q => q._id !== null || q.id !== undefined)
+    });
+    
+    if (!deleted) {
+      console.warn(`Dish not found for deletion: ${req.params.id}`);
+      return res.status(404).json({ message: 'Dish already removed or not found' });
+    }
+    
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
+    console.error('Delete error:', error);
     res.status(500).json({ message: error.message });
   }
 });

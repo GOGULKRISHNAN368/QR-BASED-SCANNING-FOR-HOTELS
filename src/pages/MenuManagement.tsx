@@ -16,13 +16,19 @@ export default function MenuManagement() {
   const [editingDish, setEditingDish] = useState<Dish | undefined>();
 
   const handleAdd = async (data: Omit<Dish, 'id' | 'createdAt'>) => {
+    const tempId = crypto.randomUUID();
     const newDish: Dish = {
       ...data,
-      id: crypto.randomUUID(),
+      id: tempId,
       createdAt: new Date().toISOString(),
     };
-    addDish(newDish);
-    toast.success(`${newDish.name} added!`);
+    
+    try {
+      addDish(newDish);
+      toast.success(`${newDish.name} added!`);
+    } catch (error) {
+      toast.error("Failed to add dish.");
+    }
   };
 
   const handleEdit = (data: Omit<Dish, 'id' | 'createdAt'>) => {

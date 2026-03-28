@@ -75,8 +75,9 @@ export function getCurrentTimeSlot(): TimeSlot {
 }
 
 export function isDishAvailableNow(dish: Dish): boolean {
-  if (!dish.available) return false;
-  if (dish.timeSlots.length === 0) return true;
+  if (!dish || dish.available === false) return false;
+  // Safety check for timeSlots being missing or not an array
+  if (!dish.timeSlots || !Array.isArray(dish.timeSlots) || dish.timeSlots.length === 0) return true;
   return dish.timeSlots.includes(getCurrentTimeSlot());
 }
 

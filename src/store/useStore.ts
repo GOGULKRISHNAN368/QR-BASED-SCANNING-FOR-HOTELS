@@ -48,15 +48,15 @@ export const useStore = create<AppState>()(
               body: JSON.stringify(dish),
             });
             if (res.ok) {
-              const newDish = await res.json();
-              // Replace the optimistic dish with the one from server (which has real ID, etc.)
+              const fromServer = await res.json();
+              // Replace the optimistic dish with the official one from server
+              const newDish = { ...fromServer, id: fromServer.id || fromServer._id };
               set((s) => ({ 
                 dishes: s.dishes.map(d => d.id === dish.id ? newDish : d) 
               }));
             } else {
-              // Rollback if server fails
               set({ dishes: previousDishes });
-              console.error('Failed to add dish to server');
+              console.error('Failed to add dish to server:', await res.text());
             }
           } catch (error) {
             set({ dishes: previousDishes });
@@ -109,8 +109,14 @@ export const useStore = create<AppState>()(
               method: 'DELETE',
             });
             if (!res.ok) {
-              set({ dishes: previousDishes });
-              console.error('Failed to remove dish from server');
+              // If it's a 404, maybe it was already deleted or was a temp ID?
+              // Only rollback if it's a real server error (500 etc)
+              if (res.status >= 500) {
+                set({ dishes: previousDishes });
+                console.error('Failed to remove dish from server due to error');
+              } else {
+                console.warn('Dish remove result:', res.status);
+              }
             }
           } catch (error) {
             set({ dishes: previousDishes });
