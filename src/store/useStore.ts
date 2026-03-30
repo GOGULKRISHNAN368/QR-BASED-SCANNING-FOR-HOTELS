@@ -35,18 +35,24 @@ export const useStore = create<AppState>()(
       
       // Real-time stream processing
       socket.on('menuUpdated', (update: any) => {
-        console.log('📡 [MenuMagic Dashboard] Menu updated via WebSocket:', update);
+        console.log('📡 [WebSocket] Menu change received:', update.action);
         set((s) => {
+          const data = { ...update.data, id: update.data?.id || update.data?._id };
+          
           if (update.action === 'create') {
-            const data = { ...update.data, id: update.data.id || update.data._id };
-            if (s.dishes.some(d => d.id === data.id)) return s;
+            // Check if already exists (avoids duplicates)
+            if (s.dishes.some(d => d.id === data.id || (d as any)._id === data.id)) return s;
             return { dishes: [...s.dishes, data] };
-          } else if (update.action === 'update') {
-            const data = { ...update.data, id: update.data.id || update.data._id };
-            return { dishes: s.dishes.map(d => d.id === data.id ? data : d) };
-          } else if (update.action === 'delete') {
-            return { dishes: s.dishes.filter(d => d.id !== update.id) };
+          } 
+          
+          if (update.action === 'update') {
+            return { dishes: s.dishes.map(d => (d.id === data.id || (d as any)._id === data.id) ? data : d) };
           }
+          
+          if (update.action === 'delete') {
+            return { dishes: s.dishes.filter(d => d.id !== update.id && (d as any)._id !== update.id) };
+          }
+          
           return s;
         });
       });
@@ -85,34 +91,47 @@ export const useStore = create<AppState>()(
           { id: '2', description: 'Electricity Bill', amount: 4500, category: 'Utilities', date: new Date().toISOString() },
           { id: '3', description: 'Kitchen Repair', amount: 2500, category: 'Maintenance', date: new Date().toISOString() },
         ],
-        addDish: async (dish) => {
-          // Optimistic update
-          const previousDishes = get().dishes;
-          set((s) => ({ dishes: [...s.dishes, dish] }));
-
+        addDish: async (dish: any) => {
+          const { imageFile, id, createdAt, ...dishData } = dish;
+          // We don't do optimistic update here because Socket.IO will broadcast the 'create' event
+          // and we don't want to duplicate. Alternatively, we just wait for the POST response.
+          
           try {
-            const res = await fetch(`${API_BASE}/dishes`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(dish),
-            });
+            let res;
+            if (imageFile) {
+              const formData = new FormData();
+              Object.keys(dishData).forEach(key => {
+                if (key === 'timeSlots') {
+                  (dishData[key] as string[]).forEach((s: string) => formData.append('timeSlots[]', s));
+                } else {
+                  formData.append(key, (dishData as any)[key]);
+                }
+              });
+              formData.append('image', imageFile);
+              res = await fetch(`${API_BASE}/dishes`, { method: 'POST', body: formData });
+            } else {
+              res = await fetch(`${API_BASE}/dishes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dishData),
+              });
+            }
+
             if (res.ok) {
               const fromServer = await res.json();
-              // Replace the optimistic dish with the official one from server
               const newDish = { ...fromServer, id: fromServer.id || fromServer._id };
-              set((s) => ({ 
-                dishes: s.dishes.map(d => d.id === dish.id ? newDish : d) 
-              }));
-            } else {
-              set({ dishes: previousDishes });
-              console.error('Failed to add dish to server:', await res.text());
+              // We only set it if not already added by WebSocket
+              set((s) => {
+                if (s.dishes.some(d => d.id === newDish.id)) return s;
+                return { dishes: [...s.dishes, newDish] };
+              });
             }
           } catch (error) {
-            set({ dishes: previousDishes });
             console.error('Failed to add dish:', error);
           }
         },
-        updateDish: async (id, updates) => {
+
+        updateDish: async (id, updates: any) => {
           // Optimistic update
           const previousDishes = get().dishes;
           set((s) => ({
@@ -121,12 +140,33 @@ export const useStore = create<AppState>()(
             ),
           }));
 
+          const { imageFile, ...updateData } = updates;
+
           try {
-            const res = await fetch(`${API_BASE}/dishes/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(updates),
-            });
+            let res;
+            if (imageFile) {
+              const formData = new FormData();
+              Object.keys(updateData).forEach(key => {
+                if (key === 'timeSlots') {
+                  (updateData[key] as string[]).forEach((s: string) => formData.append('timeSlots[]', s));
+                } else {
+                  formData.append(key, (updateData as any)[key]);
+                }
+              });
+              formData.append('image', imageFile);
+              
+              res = await fetch(`${API_BASE}/dishes/${id}`, {
+                method: 'PUT',
+                body: formData,
+              });
+            } else {
+              res = await fetch(`${API_BASE}/dishes/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData),
+              });
+            }
+
             if (res.ok) {
               let updated = await res.json();
               // Ensure consistent ID format
@@ -146,6 +186,7 @@ export const useStore = create<AppState>()(
             console.error('Failed to update dish:', error);
           }
         },
+
         removeDish: async (id) => {
           // Optimistic update
           const previousDishes = get().dishes;
@@ -304,15 +345,18 @@ export const useStore = create<AppState>()(
           }
 
           if (changed) {
-            set(updates);
-            console.log(">>> [fetchData] Store updated successfully.");
+            set({ ...updates });
+            console.log(">>> [fetchData] Store re-synchronized with MongoDB.");
           }
         },
       };
     },
-    { name: 'hotel-admin-store' }
+    { 
+      name: 'hotel-admin-store',
+      // Clear storage on version mismatch or just ensure we don't keep stale JSON
+      onRehydrateStorage: () => (state) => {
+        state?.fetchData();
+      }
+    }
   )
 );
-
-// Call fetchData right after store creation to load from MongoDB
-useStore.getState().fetchData();

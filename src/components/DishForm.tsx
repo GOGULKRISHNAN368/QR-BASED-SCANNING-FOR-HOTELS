@@ -33,6 +33,8 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
   const [offerPercent, setOfferPercent] = useState('');
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [customImage, setCustomImage] = useState<string | undefined>();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
 
   useEffect(() => {
     if (open) {
@@ -55,6 +57,7 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
@@ -63,10 +66,12 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
     }
   };
 
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !category || !price) return;
-    onSubmit({
+    
+    const dishData: any = {
       name,
       description: description || undefined,
       category,
@@ -76,9 +81,16 @@ export function DishForm({ open, onClose, onSubmit, initial }: DishFormProps) {
       offerPercent: offerPercent ? parseFloat(offerPercent) : undefined,
       timeSlots,
       imageUrl: customImage,
-    });
+    };
+
+    if (imageFile) {
+      dishData.imageFile = imageFile;
+    }
+
+    onSubmit(dishData);
     onClose();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
