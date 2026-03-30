@@ -7,9 +7,17 @@ import { Server } from 'socket.io';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Dish, Order, Staff } from './models.js';
+import axios from 'axios';
+import { Dish, Order, Staff, Customer } from './models.js';
+
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Also try loading from the backend directory if variables are missing
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 
 const app = express();
 const server = createServer(app);
@@ -200,6 +208,94 @@ app.put('/api/orders/:id/status', async (req, res) => {
     res.json({ ...updatedOrder.toObject(), id: updatedOrder.orderId || updatedOrder._id.toString() });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// WhatsApp Send Message Route
+app.post('/api/orders/:id/send-message', async (req, res) => {
+  try {
+    const { message } = req.body;
+    const order = await Order.findOne({ $or: [{ orderId: req.params.id }, { _id: req.params.id }] });
+    
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order.customerPhoneNumber) return res.status(400).json({ error: 'Customer phone number not found for this order' });
+
+    const whapiToken = process.env.WHAPI_TOKEN;
+    const whapiUrl = process.env.WHAPI_URL;
+
+    // Send to Whapi
+    let phone = order.customerPhoneNumber.replace(/\D/g, '');
+    if (phone.length === 10) phone = '91' + phone; // Add India country code if missing
+    
+    const cleanWhapi = whapiUrl.endsWith('/') ? whapiUrl : whapiUrl + '/';
+    const response = await axios.post(`${cleanWhapi}messages/text`, {
+      to: phone,
+      body: message
+    }, {
+      headers: {
+        'Authorization': `Bearer ${whapiToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('WhatsApp Response:', response.data);
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error('WhatsApp Error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'WhatsApp message failed', 
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Broadcast WhatsApp Message to ALL Customers
+app.post('/api/customers/broadcast', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'No message provided' });
+
+    const customers = await Customer.find({ phone: { $exists: true, $ne: "" } });
+    if (!customers || customers.length === 0) return res.status(404).json({ error: 'No customers found with phone numbers' });
+
+    const whapiToken = process.env.WHAPI_TOKEN;
+    const whapiUrl = process.env.WHAPI_URL;
+
+    if (!whapiToken || !whapiUrl) {
+      console.error('[BROADCAST] WHAPI credentials missing');
+      return res.status(500).json({ error: 'WhatsApp service not configured' });
+    }
+
+    const cleanWhapi = whapiUrl.endsWith('/') ? whapiUrl : whapiUrl + '/';
+    const results = [];
+
+    for (const customer of customers) {
+      try {
+        let phone = customer.phone.replace(/\D/g, '');
+        if (phone.length < 10) continue; 
+        if (phone.length === 10) phone = '91' + phone;
+
+        console.log(`[BROADCAST] Sending to ${phone}...`);
+        const response = await axios.post(`${cleanWhapi}messages/text`, {
+          to: phone,
+          body: message
+        }, {
+          headers: {
+            'Authorization': `Bearer ${whapiToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        results.push({ phone, success: true, response: response.data });
+      } catch (err) {
+        console.error(`Failed to send to ${customer.phone}:`, err.response?.data || err.message);
+        results.push({ phone: customer.phone, success: false, error: err.response?.data || err.message });
+      }
+    }
+
+    res.json({ success: true, count: results.filter(r => r.success).length, results });
+  } catch (error) {
+    console.error('Broadcast Error:', error.message);
+    res.status(500).json({ error: 'Broadcast failed', message: error.message });
   }
 });
 

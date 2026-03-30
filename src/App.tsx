@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import MenuManagement from "@/pages/MenuManagement";
 import StaffManagement from "@/pages/StaffManagement";
 import ExpenseManagement from "@/pages/ExpenseManagement";
+import OrderManagement from "@/pages/OrderManagement";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
                   <Route path="/menu" element={<MenuManagement />} />
                   <Route path="/members" element={<StaffManagement />} />
                   <Route path="/expenses" element={<ExpenseManagement />} />
+                  <Route path="/orders" element={<OrderManagement />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, UtensilsCrossed, Users, Banknote, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Users, Banknote, RefreshCw, Package } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
@@ -19,6 +19,7 @@ import {
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Orders', url: '/orders', icon: Package },
   { title: 'Menu Management', url: '/menu', icon: UtensilsCrossed },
   { title: 'Team Dashboard', url: '/members', icon: Users },
   { title: 'Expenses', url: '/expenses', icon: Banknote },

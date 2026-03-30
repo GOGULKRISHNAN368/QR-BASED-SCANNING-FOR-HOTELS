@@ -26,6 +26,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   tableNumber: number;
+  customerPhoneNumber?: string;
   items: OrderItem[];
   totalPrice: number;
   status: OrderStatus;

@@ -20,6 +20,8 @@ interface AppState {
   getTodayRevenue: () => number;
   getTotalExpenses: () => number;
   fetchData: () => Promise<void>;
+  sendWhatsAppMessage: (orderId: string, message: string) => Promise<boolean>;
+  broadcastMessage: (message: string) => Promise<{ success: boolean; count?: number }>;
 }
 
 // @ts-ignore
@@ -347,6 +349,36 @@ export const useStore = create<AppState>()(
           if (changed) {
             set({ ...updates });
             console.log(">>> [fetchData] Store re-synchronized with MongoDB.");
+          }
+        },
+        sendWhatsAppMessage: async (orderId: string, message: string) => {
+          try {
+            const res = await fetch(`${API_BASE}/orders/${orderId}/send-message`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message }),
+            });
+            return res.ok;
+          } catch (error) {
+            console.error('Failed to send WhatsApp message:', error);
+            return false;
+          }
+        },
+        broadcastMessage: async (message: string) => {
+          try {
+            const res = await fetch(`${API_BASE}/customers/broadcast`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              return { success: true, count: data.count };
+            }
+            return { success: false };
+          } catch (error) {
+            console.error('Failed to broadcast message:', error);
+            return { success: false };
           }
         },
       };

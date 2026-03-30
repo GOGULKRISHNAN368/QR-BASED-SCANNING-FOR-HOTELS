@@ -15,8 +15,28 @@ const statusStyle: Record<OrderStatus, string> = {
   completed: 'bg-success/10 text-success border-success/20',
 };
 
+import { MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
+
 export default function OrderManagement() {
-  const { orders, updateOrderStatus } = useStore();
+  const { orders, updateOrderStatus, sendWhatsAppMessage } = useStore();
+
+  const handleSendWhatsApp = async (order: any) => {
+    if (!order.customerPhoneNumber) {
+      toast.error('No phone number for this order');
+      return;
+    }
+    
+    // Default message
+    const message = `Hello! Your order ${order.id} for Table ${order.tableNumber} is currently ${order.status.toUpperCase()}. Thank you for choosing MenuMagic!`;
+    
+    const success = await sendWhatsAppMessage(order.id, message);
+    if (success) {
+      toast.success('WhatsApp message sent!');
+    } else {
+      toast.error('Failed to send WhatsApp message');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -40,6 +60,9 @@ export default function OrderManagement() {
                   <span className="font-mono text-sm font-bold text-foreground">{order.id}</span>
                   <Badge variant="outline">Table {order.tableNumber}</Badge>
                   <Badge className={statusStyle[order.status]}>{order.status}</Badge>
+                  {order.customerPhoneNumber && (
+                    <span className="text-xs text-muted-foreground">{order.customerPhoneNumber}</span>
+                  )}
                 </div>
                 <div className="space-y-1">
                   {order.items.map((item, j) => (
@@ -54,19 +77,30 @@ export default function OrderManagement() {
               </div>
               <div className="flex items-center gap-4">
                 <p className="font-display text-xl font-bold text-foreground">₹{order.totalPrice}</p>
-                <Select
-                  value={order.status}
-                  onValueChange={(v) => updateOrderStatus(order.id, v as OrderStatus)}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => handleSendWhatsApp(order)}
+                    title="Send WhatsApp Update"
+                  >
+                    <MessageSquare size={18} />
+                  </Button>
+                  <Select
+                    value={order.status}
+                    onValueChange={(v) => updateOrderStatus(order.id, v as OrderStatus)}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </motion.div>

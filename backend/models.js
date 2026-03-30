@@ -32,6 +32,7 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   orderId: { type: String, unique: true },
   tableNumber: { type: Number, required: true },
+  customerPhoneNumber: { type: String },
   items: [orderItemSchema],
   totalPrice: { type: Number, required: true },
   status: { type: String, required: true, enum: ['waiting', 'pending', 'preparing', 'served', 'completed'], default: 'waiting' },
@@ -61,6 +62,23 @@ staffSchema.set('toObject', {
   }
 });
 
+const customerSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  phone: { type: String, required: true },
+  isVerified: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
+customerSchema.set('toObject', {
+  transform: function(doc, ret) {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    delete ret.__v;
+  }
+});
+
 export const Dish = mongoose.model('Dish', dishSchema);
 export const Order = mongoose.model('Order', orderSchema);
 export const Staff = mongoose.model('Staff', staffSchema);
+export const Customer = mongoose.model('Customer', customerSchema);

@@ -1,9 +1,10 @@
-import { UtensilsCrossed, Users, AlertTriangle, Package, TrendingUp } from 'lucide-react';
+import { UtensilsCrossed, Users, AlertTriangle, Package, TrendingUp, Send } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const MOCK_INVENTORY = [
   { name: 'Chicken Breast', stock: 15, unit: 'kg', threshold: 20 },
@@ -14,7 +15,7 @@ const MOCK_INVENTORY = [
 ];
 
 export default function Dashboard() {
-  const { dishes, staff } = useStore();
+  const { dishes, staff, broadcastMessage } = useStore();
   const activeDishes = dishes.filter((d) => d.available !== false).length;
 
   return (
@@ -71,6 +72,40 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <div className="p-6 rounded-2xl border bg-card shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-semibold text-foreground">Marketing Broadcast</h2>
+            <Badge variant="outline" className="text-xs bg-primary/5 text-primary">WhatsApp Whapi</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Send a WhatsApp message to all customers in your database.</p>
+          <textarea 
+            id="broadcast-message"
+            className="flex-1 w-full min-h-[100px] p-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            placeholder="Type your promotional message or announcement here..."
+          ></textarea>
+          <Button 
+            className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white"
+            onClick={async () => {
+              const msgEl = document.getElementById('broadcast-message') as HTMLTextAreaElement;
+              const msg = msgEl?.value;
+              if (!msg) {
+                toast.error('Please enter a message');
+                return;
+              }
+              const stats = await broadcastMessage(msg);
+              if (stats.success) {
+                toast.success(`Broadcasting started! Sent to ${stats.count} customers.`);
+                msgEl.value = '';
+              } else {
+                toast.error('Failed to start broadcast');
+              }
+            }}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Send Message to All Customers
+          </Button>
+        </div>
+
         <div className="p-6 rounded-2xl border bg-card shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-foreground">Inventory Alerts</h2>
@@ -101,36 +136,6 @@ export default function Dashboard() {
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        <div className="p-6 rounded-2xl border bg-card/50 backdrop-blur-sm shadow-sm flex flex-col justify-center">
-          <div className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <TrendingUp className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="font-display text-xl font-semibold text-foreground">Smart Insights</h2>
-            {dishes.length > 0 ? (
-              (() => {
-                const groups = dishes.reduce((acc, d) => {
-                  acc[d.category] = (acc[d.category] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>);
-                
-                const topCategory = Object.entries(groups).sort((a, b) => b[1] - a[1])[0];
-                
-                return (
-                  <p className="text-muted-foreground max-w-xs mx-auto">
-                    Your <span className="text-foreground font-semibold">"{topCategory[0]}"</span> category is currently the most diverse with {topCategory[1]} specialized dishes.
-                  </p>
-                );
-              })()
-            ) : (
-              <p className="text-muted-foreground max-w-xs mx-auto">
-                Start adding dishes to your menu to see insights here!
-              </p>
-            )}
-            <Button variant="outline" className="mt-4">View Analytics</Button>
           </div>
         </div>
       </div>
